@@ -43,7 +43,7 @@ if nom_utilisateur:
             bonne_reponse = "Omega"
             
             if reponse_quiz == bonne_reponse:
-                st.success(f"Félicitations, **{'vous avez trouvé' + nom_utilisateur}** ! La bonne réponse est bien {bonne_reponse}.")
+                st.success(f"Félicitations, **{nom_utilisateur+', vous avez trouvé' }** ! La bonne réponse est bien {bonne_reponse}.")
             else:
                 # st.warning est souvent mieux qu'st.error pour une mauvaise réponse
                 st.warning(f"Dommage. Votre choix est '{reponse_quiz}'. Réessayez et peut-être que vous apprendrez quelquechose aujourd'hui")
