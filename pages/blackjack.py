@@ -6,7 +6,7 @@ import os
 # --- CONFIGURATION DES LIMITES ET FICHIER ---
 LEADERBOARD_FILE = "blackjack_leaderboard.csv"
 COLUMNS = ['Pseudo', 'Jetons Finaux']
-MAX_SCORES_TO_KEEP = 10 # Limite fixée aux 10 meilleurs scores
+MAX_SCORES_TO_KEEP = 10 
 
 # --- 1. CONFIGURATION DU JEU ---
 VALEURS = {
@@ -82,29 +82,54 @@ def charger_leaderboard():
         return pd.DataFrame(columns=COLUMNS)
 
 def sauvegarder_score(pseudo, jetons_finaux):
-    """Ajoute le nouveau score, trie, limite aux 10 premiers et sauvegarde dans le CSV."""
+    """
+    Met à jour le score du joueur s'il est meilleur que l'ancien,
+    trie, limite aux 10 premiers et sauvegarde dans le CSV.
+    """
     df = st.session_state.leaderboard_df.copy()
     
-    # Créer la nouvelle ligne
-    nouveau_score = pd.DataFrame([{'Pseudo': pseudo, 'Jetons Finaux': jetons_finaux}])
+    # Normaliser le pseudo pour la recherche
+    pseudo_norm = pseudo.strip()
     
-    # Ajouter la ligne
-    df = pd.concat([df, nouveau_score], ignore_index=True)
+    # Vérifier si le joueur existe déjà
+    index_existant = df[df['Pseudo'] == pseudo_norm].index
     
-    # 1. Trier par Jetons Finaux décroissant
-    df = df.sort_values(by='Jetons Finaux', ascending=False)
+    nouveau_score_enregistre = False
     
-    # 2. Limiter aux MAX_SCORES_TO_KEEP (10)
-    df = df.head(MAX_SCORES_TO_KEEP).reset_index(drop=True)
-    
-    # Sauvegarder dans le fichier CSV
-    try:
-        df.to_csv(LEADERBOARD_FILE, index=False)
-        st.session_state.leaderboard_df = df # Mettre à jour l'état de session
-        st.success(f"Score de {pseudo} ({jetons_finaux} jetons) sauvegardé dans le classement !")
-    except Exception as e:
-        st.error(f"Erreur lors de la sauvegarde du score : {e}")
+    if not index_existant.empty:
+        # Le joueur existe, vérifier si le nouveau score est meilleur
+        ancien_score = df.loc[index_existant[0], 'Jetons Finaux']
         
+        if jetons_finaux > ancien_score:
+            # Mettre à jour le meilleur score
+            df.loc[index_existant[0], 'Jetons Finaux'] = jetons_finaux
+            st.success(f"Nouveau record personnel pour {pseudo} ({jetons_finaux} jetons) !")
+            nouveau_score_enregistre = True
+        else:
+            st.info(f"Le score de {jetons_finaux} n'a pas dépassé le record personnel de {ancien_score} pour {pseudo}.")
+            # Le score n'est pas meilleur, on ne fait rien
+            
+    else:
+        # Nouveau joueur, ajouter l'entrée
+        nouveau_score = pd.DataFrame([{'Pseudo': pseudo_norm, 'Jetons Finaux': jetons_finaux}])
+        df = pd.concat([df, nouveau_score], ignore_index=True)
+        st.success(f"Score de {pseudo_norm} ({jetons_finaux} jetons) ajouté au classement !")
+        nouveau_score_enregistre = True
+    
+    if nouveau_score_enregistre:
+        # 1. Trier par Jetons Finaux décroissant
+        df = df.sort_values(by='Jetons Finaux', ascending=False)
+        
+        # 2. Limiter aux MAX_SCORES_TO_KEEP (10)
+        df = df.head(MAX_SCORES_TO_KEEP).reset_index(drop=True)
+        
+        # Sauvegarder dans le fichier CSV
+        try:
+            df.to_csv(LEADERBOARD_FILE, index=False)
+            st.session_state.leaderboard_df = df # Mettre à jour l'état de session
+        except Exception as e:
+            st.error(f"Erreur lors de la sauvegarde du score : {e}")
+            
     return df
 
 def afficher_leaderboard():
@@ -112,7 +137,6 @@ def afficher_leaderboard():
     df = st.session_state.leaderboard_df
     
     if not df.empty:
-        # Afficher la liste des 10 meilleurs scores (déjà triée et limitée par sauvegarder_score)
         df_affichage = df.copy()
         df_affichage.index = df_affichage.index + 1 # Indexation à partir de 1
         
@@ -127,7 +151,7 @@ def afficher_leaderboard():
 def initialiser_etat_session():
     """Initialise les variables de la session Streamlit."""
     if 'leaderboard_df' not in st.session_state:
-         st.session_state.leaderboard_df = charger_leaderboard() # Charger le CSV au démarrage
+         st.session_state.leaderboard_df = charger_leaderboard() 
 
     if 'jetons' not in st.session_state:
         st.session_state.jetons = 100 
