@@ -1,11 +1,12 @@
 import streamlit as st
 import random
 import pandas as pd
-import os # Nécessaire pour gérer les fichiers
+import os 
 
-# --- CONFIGURATION DU FICHIER DE CLASSEMENT ---
+# --- CONFIGURATION DES LIMITES ET FICHIER ---
 LEADERBOARD_FILE = "blackjack_leaderboard.csv"
 COLUMNS = ['Pseudo', 'Jetons Finaux']
+MAX_SCORES_TO_KEEP = 10 # Limite fixée aux 10 meilleurs scores
 
 # --- 1. CONFIGURATION DU JEU ---
 VALEURS = {
@@ -65,17 +66,14 @@ def tour_croupier():
         
     st.session_state.statut_jeu = 'resultat'
 
-# --- 3. FONCTIONS DE GESTION DU CLASSEMENT (NOUVELLES) ---
+# --- 3. FONCTIONS DE GESTION DU CLASSEMENT (MISES À JOUR) ---
 
 def charger_leaderboard():
     """Charge le classement depuis le fichier CSV ou crée un DataFrame vide."""
     if not os.path.exists(LEADERBOARD_FILE):
-        # Créer un DataFrame vide si le fichier n'existe pas
         return pd.DataFrame(columns=COLUMNS)
     try:
-        # Charger le fichier CSV
         df = pd.read_csv(LEADERBOARD_FILE)
-        # S'assurer que les colonnes existent
         if not all(col in df.columns for col in COLUMNS):
              return pd.DataFrame(columns=COLUMNS)
         return df
@@ -84,17 +82,20 @@ def charger_leaderboard():
         return pd.DataFrame(columns=COLUMNS)
 
 def sauvegarder_score(pseudo, jetons_finaux):
-    """Ajoute le nouveau score au DataFrame et le sauvegarde dans le CSV."""
+    """Ajoute le nouveau score, trie, limite aux 10 premiers et sauvegarde dans le CSV."""
     df = st.session_state.leaderboard_df.copy()
     
     # Créer la nouvelle ligne
     nouveau_score = pd.DataFrame([{'Pseudo': pseudo, 'Jetons Finaux': jetons_finaux}])
     
-    # Ajouter la ligne au DataFrame existant
+    # Ajouter la ligne
     df = pd.concat([df, nouveau_score], ignore_index=True)
     
-    # Trier le DataFrame et le limiter aux 10 meilleurs (facultatif, mais bonne pratique)
+    # 1. Trier par Jetons Finaux décroissant
     df = df.sort_values(by='Jetons Finaux', ascending=False)
+    
+    # 2. Limiter aux MAX_SCORES_TO_KEEP (10)
+    df = df.head(MAX_SCORES_TO_KEEP).reset_index(drop=True)
     
     # Sauvegarder dans le fichier CSV
     try:
@@ -107,16 +108,16 @@ def sauvegarder_score(pseudo, jetons_finaux):
     return df
 
 def afficher_leaderboard():
-    """Affiche le tableau des scores trié."""
+    """Affiche le tableau des scores trié et limité."""
     df = st.session_state.leaderboard_df
     
     if not df.empty:
-        # Trier par Jetons Finaux décroissant et réinitialiser l'index pour le classement
-        df_sorted = df.sort_values(by='Jetons Finaux', ascending=False).reset_index(drop=True)
-        df_sorted.index = df_sorted.index + 1 # Indexation à partir de 1
+        # Afficher la liste des 10 meilleurs scores (déjà triée et limitée par sauvegarder_score)
+        df_affichage = df.copy()
+        df_affichage.index = df_affichage.index + 1 # Indexation à partir de 1
         
-        st.markdown("### 🏆 Tableau des Scores (Leaderboard)")
-        st.dataframe(df_sorted, use_container_width=True)
+        st.markdown("### 🏆 Tableau des 10 Meilleurs Scores")
+        st.dataframe(df_affichage, use_container_width=True)
     else:
         st.info("Aucun score enregistré pour l'instant.")
 
@@ -215,7 +216,7 @@ elif st.session_state.statut_jeu == 'mise':
         
         if st.session_state.jetons <= 0:
             st.error(f"FIN DE JEU : Vous n'avez plus de jetons. 😢 Votre score final est enregistré.")
-            enregistrer_et_terminer() # Terminer quand les jetons sont épuisés
+            enregistrer_et_terminer()
         else:
             mise_choisie = st.number_input(
                 "Combien de jetons voulez-vous miser ?",
@@ -235,7 +236,7 @@ elif st.session_state.statut_jeu == 'mise':
     with col_stop:
         st.markdown("<br><br>", unsafe_allow_html=True) 
         if st.button("🔴 Arrêter et Sauvegarder", key="stop_game_mise", on_click=enregistrer_et_terminer):
-            pass # La fonction on_click gère la sauvegarde et le rerender
+            pass 
         
     st.markdown("---")
     afficher_leaderboard()
@@ -309,7 +310,7 @@ elif st.session_state.statut_jeu == 'resultat':
     joueur_blackjack = (len(st.session_state.main_joueur) == 2 and score_joueur == 21)
     croupier_blackjack = (len(st.session_state.main_croupier) == 2 and score_croupier == 21)
     
-    # Logique de gain (identique)
+    # Logique de gain
     if joueur_blackjack and not croupier_blackjack:
         gain_net = int(mise * 1.5)
         st.balloons()
@@ -351,7 +352,7 @@ elif st.session_state.statut_jeu == 'resultat':
 
     else:
         st.error("FIN DE JEU : Vous n'avez plus de jetons. 😢")
-        enregistrer_et_terminer() # Terminer et sauvegarder si le joueur a perdu tous ses jetons
+        enregistrer_et_terminer() 
 
 # --- ÉTAPE 5 : GAME OVER ET CLASSEMENT ---
 elif st.session_state.statut_jeu == 'game_over':
