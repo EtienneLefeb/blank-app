@@ -119,7 +119,8 @@ ANIMAL_IMAGE_PATHS = {
     "Rat": os.path.join(IMAGE_FOLDER, "rat.png"),
     "Singe": os.path.join(IMAGE_FOLDER, "singe.png"),
     "Poisson Clown": os.path.join(IMAGE_FOLDER, "poisson_clown.png"),
-    "Fourmi": os.path.join(IMAGE_FOLDER, "fourmi.png")
+    "Fourmi": os.path.join(IMAGE_FOLDER, "fourmi.png"),
+    "Loutre" :os.path.join(IMAGE_FOLDER, "loutre.png")
 }
 
 # --- COMMENTAIRES DE RÉSULTAT ---
@@ -128,7 +129,8 @@ COMMENTAIRES_ANIMAUX = {
     "Singe": "Un Singe. Bruyant, agité et obsédé par les bananes. Vous êtes probablement la personne la plus embêtante à une fête. Essayez la maturité la prochaine fois.",
     "Poisson Clown": "Le Poisson Clown. Mignon, certes, mais entièrement dépendant d'une anémone urticante pour survivre. En gros, vous êtes le colocataire qui ne paie jamais son loyer. Pathétique.",
     "Fourmi": "La Fourmi. Vous travaillez dur, vous suivez les ordres à la lettre, vous n'avez aucune individualité. Un robot miniature. C'est l'anti-charisme incarné. Bravo pour votre conformité.",
-    "Crocodile": "LE CROCODILE ! Lent, puissant, silencieux. Vous êtes au sommet de la chaîne alimentaire et vous n'avez besoin de l'approbation de personne. La meilleure personne, tout simplement."
+    "Crocodile": "LE CROCODILE ! Lent, puissant, silencieux. Vous êtes au sommet de la chaîne alimentaire et vous n'avez besoin de l'approbation de personne. La meilleure personne, tout simplement.",
+    "Loutre": "La loutre ! Elle est si mignonne, et elle tabasse la grosse victime de Castor pour le bien de la planète. Vous avez le courage et la force de repousser le mal et les barrages."
 }
 # ---------------------------------------------
 
@@ -248,6 +250,8 @@ if nom_utilisateur:
                 # DÉTERMINATION DU RÉSULTAT
                 if nom_utilisateur.lower() == "etienne":
                     resultat_animal = "Crocodile"
+                elif nom_utilisateur.lower() == "tony":
+                    resultat_animal = "Loutre"
                 else:
                     resultat_animal = random.choice(ANIMAUX_RESULTATS)
 
