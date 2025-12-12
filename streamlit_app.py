@@ -15,7 +15,7 @@ images_choix = {
 }
 # ---------------------------------------------
 
-# --- DÉFINITION DU QUIZ DE PERSONNALITÉ ---
+# --- DÉFINITION DU QUIZ DE PERSONNALITÉ (Identique) ---
 QUIZ_QUESTIONS = {
     1: {
         "question": "Quel est votre mode de déplacement préféré ?",
@@ -47,6 +47,15 @@ QUIZ_QUESTIONS = {
 }
 NOMBRE_DE_QUESTIONS = len(QUIZ_QUESTIONS)
 ANIMAUX_RESULTATS = ["Rat", "Singe", "Poisson Clown", "Fourmi"]
+
+# --- NOUVEAU : COMMENTAIRES DE RÉSULTAT ---
+COMMENTAIRES_ANIMAUX = {
+    "Rat": "Ah, le Rat. Vous passez votre temps dans l'ombre à grignoter des restes. C'est... discret. Mais quand même un Rat. Félicitations pour cette existence souterraine et stressante !",
+    "Singe": "Un Singe. Bruyant, agité et obsédé par les bananes. Vous êtes probablement la personne la plus embêtante à une fête. Essayez la maturité la prochaine fois.",
+    "Poisson Clown": "Le Poisson Clown. Mignon, certes, mais entièrement dépendant d'une anémone urticante pour survivre. En gros, vous êtes le colocataire qui ne paie jamais son loyer. Pathétique.",
+    "Fourmi": "La Fourmi. Vous travaillez dur, vous suivez les ordres à la lettre, vous n'avez aucune individualité. Un robot miniature. C'est l'anti-charisme incarné. Bravo pour votre conformité.",
+    "Crocodile": "LE CROCODILE ! Lent, puissant, silencieux. Vous êtes au sommet de la chaîne alimentaire et vous n'avez besoin de l'approbation de personne. La meilleure personne, tout simplement."
+}
 # ---------------------------------------------
 
 
@@ -56,7 +65,7 @@ if 'captcha_valide' not in st.session_state:
 if 'choix_captcha' not in st.session_state:
     st.session_state.choix_captcha = None
 if 'quiz_step' not in st.session_state:
-    st.session_state.quiz_step = 0 # 0: Pas commencé, 1, 2, 3...: Question actuelle, N+1: Résultats
+    st.session_state.quiz_step = 0 
 if 'quiz_answers' not in st.session_state:
     st.session_state.quiz_answers = {}
 
@@ -76,33 +85,28 @@ if nom_utilisateur:
     else:
         st.success(f"Bonjour, **{nom_utilisateur}** ! Le quiz commence !")
 
-        # --- NOUVELLE LOGIQUE : VÉRIFICATION ROBOT ---
-
+        # --- LOGIQUE VÉRIFICATION ROBOT (Identique) ---
         st.markdown("### Vérification de sécurité")
         checkbox_value = st.checkbox("Je ne suis pas un robot", 
                                      value=st.session_state.captcha_valide, 
                                      disabled=st.session_state.captcha_valide, 
                                      key="robot_check")
 
-        # Fonction pour gérer le clic sur le bouton de vérification
         def verifier_choix(choix):
             st.session_state.choix_captcha = choix
-            
             if choix == bonne_image:
                 st.session_state.captcha_valide = True
-                st.session_state.quiz_step = 1 # Démarre le quiz après la vérification
+                st.session_state.quiz_step = 1 
             else:
                 st.session_state.captcha_valide = False
                 st.error(f"❌ Mauvaise personne sélectionnée : {choix}. Veuillez réessayer.")
                 st.session_state.choix_captcha = None
-                # On réinitialise aussi le mélange pour avoir un nouvel ordre
                 if 'images_melangees' in st.session_state:
                     del st.session_state.images_melangees
                 st.rerun()
 
         if checkbox_value and not st.session_state.captcha_valide:
             st.warning(f"Veuillez sélectionner la **{"meilleure personne"}** pour continuer.")
-
             images_liste = list(images_choix.keys())
             if 'images_melangees' not in st.session_state:
                 random.shuffle(images_liste)
@@ -123,40 +127,30 @@ if nom_utilisateur:
                     if st.button("Choisir", key=f"btn_{i}", on_click=verifier_choix, args=(image_nom,)):
                         pass
         
-        # --- LOGIQUE DU QUIZ DE PERSONNALITÉ ---
+        # --- LOGIQUE DU QUIZ DE PERSONNALITÉ (Progression) ---
 
         if st.session_state.captcha_valide:
-            # Affiche un message de succès après le Captcha (pour confirmation visuelle)
             if st.session_state.quiz_step == 1:
                  st.success("🤖 Vérification réussie ! Passons au vrai quiz maintenant !")
                  
             # 1. Traitement des questions
             if st.session_state.quiz_step <= NOMBRE_DE_QUESTIONS:
                 current_step = st.session_state.quiz_step
-                
-                # Récupérer la question actuelle
                 q_data = QUIZ_QUESTIONS[current_step]
 
                 st.header(f"Question {current_step} / {NOMBRE_DE_QUESTIONS} :")
                 
-                # Utilisez st.radio pour le choix multiple
-                # Clé unique pour chaque question
                 reponse_q = st.radio(
                     q_data["question"],
                     q_data["options"].values(),
                     key=f"q_{current_step}_radio"
                 )
 
-                # Fonction pour passer à la question suivante
                 def next_question():
-                    # Stocker la réponse dans l'état de session
                     st.session_state.quiz_answers[current_step] = reponse_q
-                    # Avancer
                     st.session_state.quiz_step += 1
                 
-                # Bouton pour valider et passer à la suite
                 if st.button("Suivant", key=f"btn_next_q_{current_step}", on_click=next_question):
-                    # Le re-run est géré par la mise à jour de st.session_state.quiz_step
                     pass 
 
             # 2. Affichage des Résultats
@@ -164,25 +158,25 @@ if nom_utilisateur:
                 st.header("🎉 Vos Résultats de Personnalité Débile")
                 st.balloons()
 
-                # LOGIQUE DE RÉSULTAT SPÉCIFIQUE
+                # DÉTERMINATION DU RÉSULTAT
                 if nom_utilisateur.lower() == "etienne":
                     resultat_animal = "Crocodile"
-                    st.success(f"Félicitations **{nom_utilisateur}** ! Vous êtes l'exception à la règle.")
-                    st.warning(f"Votre résultat est un **{resultat_animal}** ! Lent, puissant, et la meilleure personne.")
                 else:
-                    # Choisir un animal aléatoirement pour les autres
                     resultat_animal = random.choice(ANIMAUX_RESULTATS)
-                    st.info(f"Félicitations **{nom_utilisateur}** ! Vous avez terminé le quiz.")
-                    st.warning(f"Votre animal de personnalité est un **{resultat_animal}** ! ")
+
+                # AFFICHAGE DU RÉSULTAT ET DU COMMENTAIRE DÉNIGRANT
+                commentaire = COMMENTAIRES_ANIMAUX.get(resultat_animal, "Commentaire non trouvé.")
+                
+                st.warning(f"Votre animal de personnalité est un **{resultat_animal}** !")
+                st.markdown(f"> **{commentaire}**")
                 
                 st.markdown("---")
                 
-                # Affichage des réponses données (Optionnel, mais utile pour voir)
                 st.subheader("Vos réponses (pour information) :")
                 for q_num, ans in st.session_state.quiz_answers.items():
                     st.write(f"**Q{q_num}:** {ans}")
                 
-                # Bouton de réinitialisation (Optionnel)
+                # Bouton de réinitialisation
                 def reset_quiz():
                     st.session_state.quiz_step = 0
                     st.session_state.captcha_valide = False
@@ -193,7 +187,7 @@ if nom_utilisateur:
                 if st.button("Recommencer le Quiz", on_click=reset_quiz):
                     st.rerun()
 
-            # Message d'attente si la vérification est réussie mais le quiz n'a pas démarré
+            # Message d'attente/bouton de démarrage
             elif st.session_state.quiz_step == 0:
                  st.success("🤖 Vérification réussie ! Cliquez sur le bouton 'Commencer le Quiz' ci-dessous.")
                  if st.button("Commencer le Quiz", key="start_quiz"):
