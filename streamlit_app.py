@@ -6,6 +6,7 @@ import os
 IMAGE_FOLDER = "images" 
 bonne_image = "Etienne" 
 
+# Assurez-vous d'avoir les images suivantes dans votre dossier 'images/'
 images_choix = {
     "Etienne": os.path.join(IMAGE_FOLDER, "etienne.jpg"),
     "Armand": os.path.join(IMAGE_FOLDER, "armand.jpg"),
@@ -15,7 +16,7 @@ images_choix = {
 }
 # ---------------------------------------------
 
-# --- DÉFINITION DU QUIZ DE PERSONNALITÉ (Identique) ---
+# --- DÉFINITION DU QUIZ DE PERSONNALITÉ (10 QUESTIONS) ---
 QUIZ_QUESTIONS = {
     1: {
         "question": "Quel est votre mode de déplacement préféré ?",
@@ -43,12 +44,76 @@ QUIZ_QUESTIONS = {
             "C": "Le plancton et les algues.",
             "D": "Une seule miette, mais de façon très ordonnée."
         }
+    },
+    4: {
+        "question": "Quel est votre talent caché ?",
+        "options": {
+            "A": "Dormir pendant des mois.",
+            "B": "Voler les objets brillants des humains.",
+            "C": "Me reproduire très rapidement.",
+            "D": "Parler à l'eau."
+        }
+    },
+    5: {
+        "question": "Décrivez votre hygiène personnelle :",
+        "options": {
+            "A": "Un bain de boue, c'est suffisant.",
+            "B": "Je me gratte souvent.",
+            "C": "Je me fais nettoyer par des crevettes.",
+            "D": "Je n'ai pas le temps, je travaille."
+        }
+    },
+    6: {
+        "question": "Votre couleur d'humeur typique ?",
+        "options": {
+            "A": "Vert boue.",
+            "B": "Rouge colère.",
+            "C": "Orange ou blanc, cela dépend de ma colère.",
+            "D": "Noir (comme l'uniforme de travail)."
+        }
+    },
+    7: {
+        "question": "Si vous gagnez à la loterie, que faites-vous ?",
+        "options": {
+            "A": "J'achète le marécage le plus grand et je m'y prélasse.",
+            "B": "J'achète un jet-pack et je fais le singe dans les airs.",
+            "C": "J'achète une anémone de luxe pour ma retraite.",
+            "D": "Je reverse tout à la reine pour l'efficacité de la colonie."
+        }
+    },
+    8: {
+        "question": "Votre plus grande peur secrète ?",
+        "options": {
+            "A": "Le dentiste (un bâton entre les mâchoires).",
+            "B": "Les cages de zoo.",
+            "C": "Être seul sans mon anémone.",
+            "D": "Les bottes d'humains."
+        }
+    },
+    9: {
+        "question": "Votre devise dans la vie ?",
+        "options": {
+            "A": "Chasse ou sois chassé.",
+            "B": "Toujours plus de vacarme.",
+            "C": "Restons cachés, la vie est moins dangereuse.",
+            "D": "Pour la Reine et la Colonie !"
+        }
+    },
+    10: {
+        "question": "Comment gérez-vous le stress ?",
+        "options": {
+            "A": "Je reste immobile pendant 3 heures.",
+            "B": "Je crie très fort.",
+            "C": "Je nage en rond jusqu'à l'épuisement.",
+            "D": "Je travaille deux fois plus."
+        }
     }
 }
 NOMBRE_DE_QUESTIONS = len(QUIZ_QUESTIONS)
 ANIMAUX_RESULTATS = ["Rat", "Singe", "Poisson Clown", "Fourmi"]
 
-# --- NOUVEAU : MAPPING DES IMAGES D'ANIMAUX ---
+# --- MAPPING DES IMAGES D'ANIMAUX ---
+# Assurez-vous d'avoir ces fichiers .png dans votre dossier 'images/'
 ANIMAL_IMAGE_PATHS = {
     "Crocodile": os.path.join(IMAGE_FOLDER, "crocodile.png"),
     "Rat": os.path.join(IMAGE_FOLDER, "rat.png"),
@@ -57,7 +122,7 @@ ANIMAL_IMAGE_PATHS = {
     "Fourmi": os.path.join(IMAGE_FOLDER, "fourmi.png")
 }
 
-# --- COMMENTAIRES DE RÉSULTAT (Identique) ---
+# --- COMMENTAIRES DE RÉSULTAT ---
 COMMENTAIRES_ANIMAUX = {
     "Rat": "Ah, le Rat. Vous passez votre temps dans l'ombre à grignoter des restes. C'est... discret. Mais quand même un Rat. Félicitations pour cette existence souterraine et stressante !",
     "Singe": "Un Singe. Bruyant, agité et obsédé par les bananes. Vous êtes probablement la personne la plus embêtante à une fête. Essayez la maturité la prochaine fois.",
@@ -94,7 +159,7 @@ if nom_utilisateur:
     else:
         st.success(f"Bonjour, **{nom_utilisateur}** ! Le quiz commence !")
 
-        # --- LOGIQUE VÉRIFICATION ROBOT (Identique) ---
+        # --- LOGIQUE VÉRIFICATION ROBOT ---
         st.markdown("### Vérification de sécurité")
         checkbox_value = st.checkbox("Je ne suis pas un robot", 
                                      value=st.session_state.captcha_valide, 
@@ -149,9 +214,16 @@ if nom_utilisateur:
 
                 st.header(f"Question {current_step} / {NOMBRE_DE_QUESTIONS} :")
                 
+                # Utiliser la première option comme valeur par défaut, ou la réponse précédente
+                default_option = st.session_state.quiz_answers.get(current_step)
+                if default_option is None:
+                    # Si pas de réponse enregistrée, prendre la première option du dictionnaire
+                    default_option = list(q_data["options"].values())[0]
+
                 reponse_q = st.radio(
                     q_data["question"],
                     q_data["options"].values(),
+                    index=list(q_data["options"].values()).index(default_option), # Pour sélectionner la réponse précédente
                     key=f"q_{current_step}_radio"
                 )
 
@@ -179,10 +251,9 @@ if nom_utilisateur:
                 
                 # AFFICHAGE DE L'IMAGE
                 if image_resultat_path and os.path.exists(image_resultat_path):
-                    # Affiche l'image avec une taille raisonnable
                     st.image(image_resultat_path, caption=f"Vous êtes un(e) **{resultat_animal}**", width=300)
                 else:
-                    st.error(f"⚠️ Image de l'animal non trouvée. Veuillez vérifier que le fichier '{os.path.basename(image_resultat_path)}' est bien dans le dossier '{IMAGE_FOLDER}/'.")
+                    st.error(f"⚠️ Image de l'animal non trouvée. Vérifiez '{os.path.basename(image_resultat_path)}' dans '{IMAGE_FOLDER}/'.")
 
                 # AFFICHAGE DU RÉSULTAT ET DU COMMENTAIRE DÉNIGRANT
                 st.warning(f"Votre animal de personnalité est un **{resultat_animal}** !")
@@ -211,6 +282,11 @@ if nom_utilisateur:
                  if st.button("Commencer le Quiz", key="start_quiz"):
                      st.session_state.quiz_step = 1
                      st.rerun()
+                     
+        else:
+            # S'assurer qu'on réinitialise l'état si l'utilisateur change de nom
+            st.session_state.quiz_step = 0
+            st.session_state.quiz_answers = {}
 
 
 else:
