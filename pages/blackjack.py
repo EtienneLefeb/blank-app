@@ -1,10 +1,13 @@
 import streamlit as st
 import random
-import pandas as pd 
+import pandas as pd
+import os # Nécessaire pour gérer les fichiers
+
+# --- CONFIGURATION DU FICHIER DE CLASSEMENT ---
+LEADERBOARD_FILE = "blackjack_leaderboard.csv"
+COLUMNS = ['Pseudo', 'Jetons Finaux']
 
 # --- 1. CONFIGURATION DU JEU ---
-
-# Définition des valeurs des cartes
 VALEURS = {
     '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9,
     '10': 10, 'Valet': 10, 'Dame': 10, 'Roi': 10,
@@ -23,30 +26,24 @@ def get_main_visual(main):
     """Convertit une liste de cartes (strings) en une chaîne d'emojis."""
     return ' '.join([CARTE_EMOJIS.get(carte, carte) for carte in main])
 
-# --- 2. FONCTIONS DE BASE DU JEU ---
+# --- 2. FONCTIONS DE BASE DU JEU (Non modifiées) ---
 
 def creer_paquet():
-    """Crée et mélange un paquet de cartes."""
     paquet = CARTES.copy() * 4 * len(['Pique', 'Trèfle', 'Cœur', 'Carreau'])
     random.shuffle(paquet)
     return paquet
 
 def calculer_score(main):
-    """Calcule le meilleur score possible pour une main (gestion de l'As)."""
     score = 0
     nombre_as = main.count('As')
-    
     for carte in main:
         score += VALEURS[carte]
-    
     while score > 21 and nombre_as > 0:
         score -= 10
         nombre_as -= 1
-        
     return score
 
 def distribuer_cartes(paquet):
-    """Distribue les cartes initiales."""
     if len(paquet) < 20: 
         st.session_state.paquet = creer_paquet()
         paquet = st.session_state.paquet
@@ -56,12 +53,10 @@ def distribuer_cartes(paquet):
     return main_joueur, main_croupier
 
 def action_tirer(main, paquet):
-    """Ajoute une carte à la main du joueur."""
     main.append(paquet.pop())
     return main
 
 def tour_croupier():
-    """Joue la main du croupier (tire jusqu'à 17 ou plus)."""
     paquet = st.session_state.paquet
     main_croupier = st.session_state.main_croupier
     
@@ -70,10 +65,69 @@ def tour_croupier():
         
     st.session_state.statut_jeu = 'resultat'
 
-# --- 3. FONCTIONS DE GESTION DE L'ÉTAT (Streamlit) ---
+# --- 3. FONCTIONS DE GESTION DU CLASSEMENT (NOUVELLES) ---
+
+def charger_leaderboard():
+    """Charge le classement depuis le fichier CSV ou crée un DataFrame vide."""
+    if not os.path.exists(LEADERBOARD_FILE):
+        # Créer un DataFrame vide si le fichier n'existe pas
+        return pd.DataFrame(columns=COLUMNS)
+    try:
+        # Charger le fichier CSV
+        df = pd.read_csv(LEADERBOARD_FILE)
+        # S'assurer que les colonnes existent
+        if not all(col in df.columns for col in COLUMNS):
+             return pd.DataFrame(columns=COLUMNS)
+        return df
+    except Exception as e:
+        st.error(f"Erreur lors du chargement du leaderboard : {e}")
+        return pd.DataFrame(columns=COLUMNS)
+
+def sauvegarder_score(pseudo, jetons_finaux):
+    """Ajoute le nouveau score au DataFrame et le sauvegarde dans le CSV."""
+    df = st.session_state.leaderboard_df.copy()
+    
+    # Créer la nouvelle ligne
+    nouveau_score = pd.DataFrame([{'Pseudo': pseudo, 'Jetons Finaux': jetons_finaux}])
+    
+    # Ajouter la ligne au DataFrame existant
+    df = pd.concat([df, nouveau_score], ignore_index=True)
+    
+    # Trier le DataFrame et le limiter aux 10 meilleurs (facultatif, mais bonne pratique)
+    df = df.sort_values(by='Jetons Finaux', ascending=False)
+    
+    # Sauvegarder dans le fichier CSV
+    try:
+        df.to_csv(LEADERBOARD_FILE, index=False)
+        st.session_state.leaderboard_df = df # Mettre à jour l'état de session
+        st.success(f"Score de {pseudo} ({jetons_finaux} jetons) sauvegardé dans le classement !")
+    except Exception as e:
+        st.error(f"Erreur lors de la sauvegarde du score : {e}")
+        
+    return df
+
+def afficher_leaderboard():
+    """Affiche le tableau des scores trié."""
+    df = st.session_state.leaderboard_df
+    
+    if not df.empty:
+        # Trier par Jetons Finaux décroissant et réinitialiser l'index pour le classement
+        df_sorted = df.sort_values(by='Jetons Finaux', ascending=False).reset_index(drop=True)
+        df_sorted.index = df_sorted.index + 1 # Indexation à partir de 1
+        
+        st.markdown("### 🏆 Tableau des Scores (Leaderboard)")
+        st.dataframe(df_sorted, use_container_width=True)
+    else:
+        st.info("Aucun score enregistré pour l'instant.")
+
+
+# --- 4. FONCTIONS DE GESTION DE L'ÉTAT (Streamlit) ---
 
 def initialiser_etat_session():
     """Initialise les variables de la session Streamlit."""
+    if 'leaderboard_df' not in st.session_state:
+         st.session_state.leaderboard_df = charger_leaderboard() # Charger le CSV au démarrage
+
     if 'jetons' not in st.session_state:
         st.session_state.jetons = 100 
     if 'statut_jeu' not in st.session_state:
@@ -88,11 +142,8 @@ def initialiser_etat_session():
          st.session_state.main_joueur = []
     if 'main_croupier' not in st.session_state:
          st.session_state.main_croupier = []
-    if 'leaderboard' not in st.session_state:
-         st.session_state.leaderboard = [] 
 
 def enregistrer_pseudo(pseudo_saisi):
-    """Enregistre le pseudo et passe à l'étape de mise."""
     if pseudo_saisi.strip():
         st.session_state.pseudo = pseudo_saisi.strip()
         st.session_state.statut_jeu = 'mise'
@@ -101,8 +152,6 @@ def enregistrer_pseudo(pseudo_saisi):
         st.error("Veuillez saisir un pseudo valide pour commencer.")
 
 def lancer_partie(mise_valeur):
-    """Lance la distribution et passe à l'étape du jeu."""
-    
     if mise_valeur <= 0:
         st.error("Veuillez miser un montant supérieur à zéro.")
         return
@@ -120,35 +169,20 @@ def lancer_partie(mise_valeur):
     st.session_state.statut_jeu = 'jouer'
 
 def reinitialiser_partie():
-    """Réinitialise le statut pour une nouvelle mise."""
     st.session_state.statut_jeu = 'mise'
     st.session_state.main_joueur = []
     st.session_state.main_croupier = []
     st.session_state.mise = 0
 
-def enregistrer_score_final():
-    """Enregistre le score du joueur (jetons restants) dans le leaderboard."""
-    nouveau_score = {
-        'Pseudo': st.session_state.pseudo,
-        'Jetons Finaux': st.session_state.jetons
-    }
-    st.session_state.leaderboard.append(nouveau_score)
-    # Tri et passage à l'écran de fin de jeu
+def enregistrer_et_terminer():
+    """Sauvegarde le score actuel et passe à l'écran Game Over."""
+    if st.session_state.pseudo and st.session_state.jetons >= 0:
+        sauvegarder_score(st.session_state.pseudo, st.session_state.jetons)
     st.session_state.statut_jeu = 'game_over'
+    st.rerun()
 
-def afficher_leaderboard():
-    """Affiche le tableau des scores trié."""
-    if st.session_state.leaderboard:
-        df = pd.DataFrame(st.session_state.leaderboard)
-        df_sorted = df.sort_values(by='Jetons Finaux', ascending=False).reset_index(drop=True)
-        df_sorted.index = df_sorted.index + 1
-        
-        st.markdown("### 🏆 Tableau des Scores (Leaderboard)")
-        st.dataframe(df_sorted, use_container_width=True)
-    else:
-        st.info("Aucun score enregistré pour l'instant.")
 
-# --- 4. INTERFACE UTILISATEUR ET LOGIQUE DU JEU ---
+# --- 5. INTERFACE UTILISATEUR ET LOGIQUE DU JEU ---
 
 st.set_page_config(layout="centered", page_title="Blackjack Py")
 initialiser_etat_session()
@@ -181,8 +215,7 @@ elif st.session_state.statut_jeu == 'mise':
         
         if st.session_state.jetons <= 0:
             st.error(f"FIN DE JEU : Vous n'avez plus de jetons. 😢 Votre score final est enregistré.")
-            enregistrer_score_final()
-            st.rerun()
+            enregistrer_et_terminer() # Terminer quand les jetons sont épuisés
         else:
             mise_choisie = st.number_input(
                 "Combien de jetons voulez-vous miser ?",
@@ -200,12 +233,10 @@ elif st.session_state.statut_jeu == 'mise':
             )
             
     with col_stop:
-        st.markdown("<br><br>", unsafe_allow_html=True) # Espace pour aligner le bouton
-        if st.button("🔴 Arrêter et Sauvegarder", key="stop_game_mise"):
-            enregistrer_score_final()
-            st.rerun()
+        st.markdown("<br><br>", unsafe_allow_html=True) 
+        if st.button("🔴 Arrêter et Sauvegarder", key="stop_game_mise", on_click=enregistrer_et_terminer):
+            pass # La fonction on_click gère la sauvegarde et le rerender
         
-    # Affichage du classement sous la mise
     st.markdown("---")
     afficher_leaderboard()
 
@@ -223,9 +254,8 @@ elif st.session_state.statut_jeu == 'jouer':
     st.markdown("---")
     
     # Bouton Arrêter et Sauvegarder dans la phase de jeu
-    if st.button("🔴 Arrêter et Sauvegarder", key="stop_game_jouer"):
-        enregistrer_score_final()
-        st.rerun()
+    if st.button("🔴 Arrêter et Sauvegarder", key="stop_game_jouer", on_click=enregistrer_et_terminer):
+        pass
 
     # Affichage du Croupier
     st.header("Main du Croupier")
@@ -279,7 +309,7 @@ elif st.session_state.statut_jeu == 'resultat':
     joueur_blackjack = (len(st.session_state.main_joueur) == 2 and score_joueur == 21)
     croupier_blackjack = (len(st.session_state.main_croupier) == 2 and score_croupier == 21)
     
-    # Logique de gain
+    # Logique de gain (identique)
     if joueur_blackjack and not croupier_blackjack:
         gain_net = int(mise * 1.5)
         st.balloons()
@@ -316,15 +346,12 @@ elif st.session_state.statut_jeu == 'resultat':
         with col_rejouer:
             st.button("Jouer une autre main", on_click=reinitialiser_partie, type="primary")
         with col_stop_res:
-             if st.button("🔴 Arrêter et Sauvegarder", key="stop_game_res"):
-                enregistrer_score_final()
-                st.rerun()
+             if st.button("🔴 Arrêter et Sauvegarder", key="stop_game_res", on_click=enregistrer_et_terminer):
+                pass
 
     else:
         st.error("FIN DE JEU : Vous n'avez plus de jetons. 😢")
-        enregistrer_score_final() 
-        st.rerun() 
-
+        enregistrer_et_terminer() # Terminer et sauvegarder si le joueur a perdu tous ses jetons
 
 # --- ÉTAPE 5 : GAME OVER ET CLASSEMENT ---
 elif st.session_state.statut_jeu == 'game_over':
