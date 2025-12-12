@@ -11,6 +11,18 @@ VALEURS = {
 }
 CARTES = list(VALEURS.keys())
 
+# --- MAPPING VISUEL DES CARTES (Emojis) ---
+CARTE_EMOJIS = {
+    'As': '🅰️', 'Roi': '👑', 'Dame': '👸', 'Valet': '🤵',
+    '10': '🔟', '9': '9️⃣', '8': '8️⃣', '7': '7️⃣', '6': '6️⃣',
+    '5': '5️⃣', '4': '4️⃣', '3': '3️⃣', '2': '2️⃣'
+}
+
+def get_main_visual(main):
+    """Convertit une liste de cartes (strings) en une chaîne d'emojis."""
+    # Note : Si vous voulez des cartes réelles, il faudrait utiliser st.image ici
+    return ' '.join([CARTE_EMOJIS.get(carte, carte) for carte in main])
+
 # --- 2. FONCTIONS DE BASE DU JEU ---
 
 def creer_paquet():
@@ -130,13 +142,14 @@ if st.session_state.statut_jeu == 'mise':
     st.header("Placez votre Mise")
     
     if st.session_state.jetons <= 0:
-         st.error("Vous n'avez plus de jetons. Veuillez recharger pour jouer à nouveau.")
+        st.error("Vous n'avez plus de jetons. Veuillez recharger pour jouer à nouveau.")
     else:
         # Saisie de la mise
         mise_choisie = st.number_input(
             "Combien de jetons voulez-vous miser ?",
             min_value=10,
             max_value=st.session_state.jetons,
+            # Valeur par défaut : max(10, 10% du solde), limitée au solde total.
             value=min(max( 10 , int(0.1*st.session_state.jetons)),st.session_state.jetons),
             step=5
         )
@@ -161,14 +174,15 @@ elif st.session_state.statut_jeu == 'jouer':
     st.success(f"Partie en cours. Mise actuelle : {st.session_state.mise} jetons.")
     st.markdown("---")
     
-    # Affichage du Croupier
+    # Affichage du Croupier (VISUEL)
     st.header("Main du Croupier")
-    st.markdown(f"**Cartes :** {st.session_state.main_croupier[0]}, [Carte Cachée] (?)")
+    carte_croupier_visible = get_main_visual([st.session_state.main_croupier[0]])
+    st.markdown(f"**Cartes :** {carte_croupier_visible} 🎴 (?)") 
     
-    # Affichage du Joueur
+    # Affichage du Joueur (VISUEL)
     st.header("Votre Main")
-    main_joueur_str = ", ".join(st.session_state.main_joueur)
-    st.markdown(f"**Cartes :** {main_joueur_str}")
+    main_joueur_visuel = get_main_visual(st.session_state.main_joueur)
+    st.markdown(f"**Cartes :** {main_joueur_visuel}")
     st.warning(f"**Votre Score :** {score_joueur}")
 
     # --- BOUTONS D'ACTION DU JOUEUR ---
@@ -199,9 +213,12 @@ elif st.session_state.statut_jeu == 'resultat':
     
     st.header("Résultats de la Partie")
     
-    # Affichage des mains finales
-    st.markdown(f"**Votre Main :** {', '.join(st.session_state.main_joueur)} (Score: **{score_joueur}**)")
-    st.markdown(f"**Main du Croupier :** {', '.join(st.session_state.main_croupier)} (Score: **{score_croupier}**)")
+    # Affichage des mains finales (VISUEL)
+    main_joueur_visuel = get_main_visual(st.session_state.main_joueur)
+    main_croupier_visuel = get_main_visual(st.session_state.main_croupier)
+
+    st.markdown(f"**Votre Main :** {main_joueur_visuel} (Score: **{score_joueur}**)")
+    st.markdown(f"**Main du Croupier :** {main_croupier_visuel} (Score: **{score_croupier}**)")
     st.markdown("---")
 
     resultat = ""
@@ -244,9 +261,7 @@ elif st.session_state.statut_jeu == 'resultat':
         gain_net = 0
 
     # 3. Application du gain aux jetons
-    # Si gain_net > 0 : on ajoute le gain + la mise initiale (car la mise avait été retirée au départ).
-    # Si gain_net = 0 (Push) : on rend la mise initiale.
-    # Si gain_net < 0 (Perte) : rien à faire, la perte est déjà effective (mise retirée au départ).
+    # Si gain_net >= 0 : on ajoute le gain + la mise initiale (car la mise avait été retirée au départ).
     if gain_net >= 0:
         st.session_state.jetons += (mise + gain_net)
     
