@@ -49,7 +49,7 @@ if nom_utilisateur:
                                      key="robot_check")
 
         if checkbox_value and not st.session_state.captcha_valide:
-            st.warning(f"Veuillez sélectionner la ** meilleure personne ** pour continuer.")
+            st.warning(f"Veuillez sélectionner la **{"meilleure personne"}** pour continuer.")
 
             images_liste = list(images_choix.keys())
             random.shuffle(images_liste)
@@ -72,7 +72,7 @@ if nom_utilisateur:
                         st.stop() # Arrête le script si un fichier manque
                         
                     # Créer un bouton pour la sélection
-                    if st.button("Choisir", key=f"btn_{i}"):
+                    if st.button(f"Choisir {image_nom}", key=f"btn_{i}"):
                         selection_image.markdown(f"Vous avez choisi **{image_nom}**")
                         
                         # Vérification de la réponse
