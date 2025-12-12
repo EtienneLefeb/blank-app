@@ -135,9 +135,9 @@ if st.session_state.statut_jeu == 'mise':
         # Saisie de la mise
         mise_choisie = st.number_input(
             "Combien de jetons voulez-vous miser ?",
-            min_value=1,
+            min_value=10,
             max_value=st.session_state.jetons,
-            value=min(10, st.session_state.jetons),
+            value=min(max( 10 , int(0.1*st.session_state.jetons)),st.session_state.jetons),
             step=5
         )
         
