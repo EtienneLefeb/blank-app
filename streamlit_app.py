@@ -156,6 +156,12 @@ if nom_utilisateur:
         st.error("Vous êtes trop bête pour répondre à ce quiz 🤣😂😂")
         st.session_state.captcha_valide = False
         st.session_state.quiz_step = 0
+    elif nom_utilisateur.lower() in ["michel","kaiser"]:
+
+        st.error("Vous êtes trop bête pour répondre à ce quiz 🤣😂😂, mais joyeux anniversaire quand même 🥳🥳🥳")
+        st.session_state.captcha_valide = False
+        st.session_state.quiz_step = 0
+
     else:
         st.success(f"Bonjour, **{nom_utilisateur}** ! Le quiz commence !")
 
