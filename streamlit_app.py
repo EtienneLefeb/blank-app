@@ -2,7 +2,7 @@ import streamlit as st
 import random
 import os
 
-# --- CONFIGURATION DES CHEMINS D'IMAGE (Identique) ---
+# --- CONFIGURATION DES CHEMINS D'IMAGE ---
 IMAGE_FOLDER = "images" 
 bonne_image = "Etienne" 
 
@@ -48,7 +48,16 @@ QUIZ_QUESTIONS = {
 NOMBRE_DE_QUESTIONS = len(QUIZ_QUESTIONS)
 ANIMAUX_RESULTATS = ["Rat", "Singe", "Poisson Clown", "Fourmi"]
 
-# --- NOUVEAU : COMMENTAIRES DE RÉSULTAT ---
+# --- NOUVEAU : MAPPING DES IMAGES D'ANIMAUX ---
+ANIMAL_IMAGE_PATHS = {
+    "Crocodile": os.path.join(IMAGE_FOLDER, "crocodile.png"),
+    "Rat": os.path.join(IMAGE_FOLDER, "rat.png"),
+    "Singe": os.path.join(IMAGE_FOLDER, "singe.png"),
+    "Poisson Clown": os.path.join(IMAGE_FOLDER, "poisson_clown.png"),
+    "Fourmi": os.path.join(IMAGE_FOLDER, "fourmi.png")
+}
+
+# --- COMMENTAIRES DE RÉSULTAT (Identique) ---
 COMMENTAIRES_ANIMAUX = {
     "Rat": "Ah, le Rat. Vous passez votre temps dans l'ombre à grignoter des restes. C'est... discret. Mais quand même un Rat. Félicitations pour cette existence souterraine et stressante !",
     "Singe": "Un Singe. Bruyant, agité et obsédé par les bananes. Vous êtes probablement la personne la plus embêtante à une fête. Essayez la maturité la prochaine fois.",
@@ -164,9 +173,18 @@ if nom_utilisateur:
                 else:
                     resultat_animal = random.choice(ANIMAUX_RESULTATS)
 
-                # AFFICHAGE DU RÉSULTAT ET DU COMMENTAIRE DÉNIGRANT
+                # DÉTERMINATION DU CHEMIN DE L'IMAGE
+                image_resultat_path = ANIMAL_IMAGE_PATHS.get(resultat_animal)
                 commentaire = COMMENTAIRES_ANIMAUX.get(resultat_animal, "Commentaire non trouvé.")
                 
+                # AFFICHAGE DE L'IMAGE
+                if image_resultat_path and os.path.exists(image_resultat_path):
+                    # Affiche l'image avec une taille raisonnable
+                    st.image(image_resultat_path, caption=f"Vous êtes un(e) **{resultat_animal}**", width=300)
+                else:
+                    st.error(f"⚠️ Image de l'animal non trouvée. Veuillez vérifier que le fichier '{os.path.basename(image_resultat_path)}' est bien dans le dossier '{IMAGE_FOLDER}/'.")
+
+                # AFFICHAGE DU RÉSULTAT ET DU COMMENTAIRE DÉNIGRANT
                 st.warning(f"Votre animal de personnalité est un **{resultat_animal}** !")
                 st.markdown(f"> **{commentaire}**")
                 
